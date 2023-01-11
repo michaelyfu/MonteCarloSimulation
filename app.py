@@ -7,6 +7,7 @@ import yfinance as yfin
 from scipy.stats import norm
 import streamlit as st
 
+
 yfin.pdr_override()
 
 
