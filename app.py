@@ -5,7 +5,7 @@ import datetime as dt
 from pandas_datareader import data as pdr
 import yfinance as yfin
 from scipy.stats import norm
-import statistics
+import streamlit as st
 
 yfin.pdr_override()
 
@@ -61,6 +61,7 @@ def plot_line_graph(portfolio_sims):
 
 def plot_histogram(portfolio_sims, NUM_SIMULATIONS):
     expected_vals = portfolio_sims[-1:].ravel()
+    print(expected_vals)
     filtered = expected_vals[~is_outlier(expected_vals)]
     bin_count = int(np.ceil(np.log2(
         NUM_SIMULATIONS) + 1))  # sturge's rule for estimating number of bins in histogram
@@ -71,8 +72,8 @@ def plot_histogram(portfolio_sims, NUM_SIMULATIONS):
     title = "Fit results: mu = %.2f,  std = %.2f" % (mu, std)
     plt.title(title)
 
-    plt.ylabel('Portfolio Value ($)')
-    plt.xlabel('Count')
+    plt.ylabel('Count')
+    plt.xlabel('Portfolio Value ($)')
 
 
 def is_outlier(points, thresh=3.5):
@@ -110,10 +111,18 @@ def is_outlier(points, thresh=3.5):
 
     return modified_z_score > thresh
 
+def user_inputs():
+    st.slider("Starting Portfolio Value", 0, 1000000, key="starting_val")
+
+def front_end():
+    st.pyplot(plt)
+    simulation_button = st.button("Run Simulation")
 
 if __name__ == "__main__":
-    INITIAL_PORTFOLIO = 100000.
-    NUM_SIMULATIONS = 50000
+    user_inputs()
+    # INITIAL_PORTFOLIO = st.session_state.starting_val
+    INITIAL_PORTFOLIO = 0
+    NUM_SIMULATIONS = 100
     TIME_FRAME = 300
     DURATION = TIME_FRAME
     STOCK_LIST = ['AMZN', 'MSFT', 'AAPL', 'TSLA']
@@ -137,3 +146,7 @@ if __name__ == "__main__":
     plot_histogram(portfolio_sims, NUM_SIMULATIONS)
     plt.tight_layout()
     plt.show()
+
+    front_end()
+
+

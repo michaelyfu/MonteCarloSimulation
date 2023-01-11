@@ -4,12 +4,7 @@
     <list default="true" id="967ca39f-0a30-49a7-bafc-49e4cb24a1bd" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/../30-Days-Of-React" beforeDir="false" afterPath="$PROJECT_DIR$/../30-Days-Of-React" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../Airbnb Webscraper" beforeDir="false" afterPath="$PROJECT_DIR$/../Airbnb Webscraper" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/.gitignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/MonteCarloSimulation.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/MonteCarloSimulation.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.vscode/launch.json" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/app.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../Sticky Notes Website/stickyNotes" beforeDir="false" afterPath="$PROJECT_DIR$/../Sticky Notes Website/stickyNotes" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../WorkoutCV" beforeDir="false" afterPath="$PROJECT_DIR$/../WorkoutCV" afterDir="false" />
@@ -34,7 +29,7 @@
     </option>
   </component>
   <component name="Git.Settings">
-    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="MarkdownSettingsMigration">
     <option name="stateVersion" value="1" />
@@ -82,5 +77,16 @@
       <updated>1673381127331</updated>
     </task>
     <servers />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
   </component>
 </project>
