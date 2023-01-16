@@ -1,3 +1,4 @@
+import random
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -8,17 +9,15 @@ from scipy.stats import norm
 import streamlit as st
 from st_aggrid import AgGrid, DataReturnMode, GridUpdateMode, GridOptionsBuilder
 import csv
+import re
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
 
 
 yfin.pdr_override()
 
-with open('nasdaq_stocks.csv') as f:
-    reader = csv.reader(f)
-    data = pd.DataFrame(reader)
-    tickers_list = data[0].tolist()
-    tickers_list = tickers_list[1:]
-
-DEBUG_MODE = False
+DEBUG_MODE = 0
+# DEBUG_MODE == 0 IS RANDOM WEIGHTS, 1 IS NO USER INPUT, 2 IS SET WEIGHTS
 
 def get_data(stocks, start, end):
     data = pdr.get_data_yahoo(stocks, start, end)
@@ -73,10 +72,14 @@ def plot_histogram(portfolio_sims, NUM_SIMULATIONS):
     expected_vals = portfolio_sims[-1:].ravel()
     # print(expected_vals)
     filtered = expected_vals[~is_outlier(expected_vals)]
-    bin_count = int(np.ceil(np.log2(
-        NUM_SIMULATIONS) + 1))  # sturge's rule for estimating number of bins in histogram
-    plt.hist(filtered, bins=bin_count)  # need to update to auto bins
-
+    try:
+        bin_count = int(np.ceil(np.log2(
+            NUM_SIMULATIONS) + 1))  # sturge's rule for estimating number of bins in histogram
+        plt.hist(filtered, bins=bin_count)  # need to update to auto bins
+    except:
+        plt.hist(filtered)
+        st.markdown(":red[Error: Please set Time Frame and Number of "
+                    "Simulations to Run to be greater than 0]")
     mu, std = norm.fit(expected_vals)
 
     title = "Fit results: mu = %.2f,  std = %.2f" % (mu, std)
@@ -121,11 +124,16 @@ def is_outlier(points, thresh=3.5):
 
     return modified_z_score > thresh
 
-def user_inputs():
+def random_weights_user_inputs():
     st.slider("Starting Portfolio Value", 0, 1000000, key="initial_val")
-    st.slider("Time Frame", 0, 1095, key="num_days")
-    # options = st.multiselect(
-    #     'What stocks make up your portfolio?', tickers_list, key="stock_list")
+    st.slider("Time Frame (number of days)", 0, 1095, key="num_days")
+    st.slider("Number of Simulations to Run", 0, 10000, key="num_simuls")
+    options = st.multiselect(
+        'What stocks make up your portfolio?', tickers_list, key="stock_list")
+
+def user_inputs():
+    st.slider("Time Frame (number of days)", 0, 1095, key="num_days")
+    st.slider("Number of Simulations to Run", 0, 10000, key="num_simuls")
     num_row = st.number_input("Number of Rows", min_value=2, max_value=50)
     st.session_state.num_row = num_row
     if 'num_row' not in st.session_state:
@@ -133,12 +141,14 @@ def user_inputs():
     df_portfolio = pd.DataFrame(
         '',
         index=range(st.session_state.num_row),
-        columns=["Ticker (ex. AAPL)", "Portfolio Weight (ex. 0.25)"]
+        columns=["Tickers (ex. AAPL)", "Value (ex. 5000)"]
     )
     with st.form('Portfolio'):
+        st.subheader("Current Portfolio")
         response = AgGrid(df_portfolio, editable=True, fit_columns_on_grid_load=True)
         st.form_submit_button()
-        st.write(response['data'])
+        # st.write(response['data'])
+    return response['data']
 
 def header():
     st.header("iPortfolio")
@@ -154,22 +164,54 @@ def header():
 def front_end():
     st.pyplot(plt)
 
+def clean_val(x):
+    special_string = "spe@#$ci87al*&"
+    x = re.sub(special_string, "", x)
+    x = x.upper()
+    return x
+
 if __name__ == "__main__":
     header()
-    user_inputs()
+    weights = []
     try:
-        if DEBUG_MODE:
+        if DEBUG_MODE == 0:
             INITIAL_PORTFOLIO = 50000
             # STOCK_LIST = ['AMZN', 'MSFT', 'AAPL', 'TSLA', 'GOOGL', 'V']
-            STOCK_LIST = ['GOOGL']
-            TIME_FRAME = 300
-            NUM_SIMULATIONS = 5
-        else:
+            with open('sp500_companies.csv') as f:
+                reader = csv.reader(f)
+                data = pd.DataFrame(reader)
+                tickers_list = data[1].tolist()
+                tickers_list = tickers_list[1:]
+            STOCK_LIST = [tickers_list[i] for i in random.sample(range(0,
+                                                                       495),
+                                                                 random.randint(2, 50))]
+            print(STOCK_LIST)
+            TIME_FRAME = random.randint(100, 500)
+            print(TIME_FRAME)
+            NUM_SIMULATIONS = random.randint(1, 10000)
+            print(NUM_SIMULATIONS)
+        elif DEBUG_MODE == 1:
+            random_weights_user_inputs()
             INITIAL_PORTFOLIO = st.session_state.initial_val
             STOCK_LIST = st.session_state.stock_list
             TIME_FRAME = st.session_state.num_days
-
-        NUM_SIMULATIONS = 5
+            NUM_SIMULATIONS = st.session_state.num_simuls
+        elif DEBUG_MODE == 2:
+            col1 = "Tickers (ex. AAPL)"
+            col2 = "Value (ex. 5000)"
+            df_portfolio = user_inputs()
+            TIME_FRAME = st.session_state.num_days
+            NUM_SIMULATIONS = st.session_state.num_simuls
+            try:
+                df_portfolio[col2] = df_portfolio[col2].astype('float')
+                INITIAL_PORTFOLIO = df_portfolio[col2].sum()
+                df_portfolio[col1] = df_portfolio[col1].apply(lambda x :
+                                                             clean_val(x))
+                STOCK_LIST = df_portfolio[col1].tolist()
+                weights = df_portfolio[col2].to_numpy()
+            except:
+                st.markdown(":red[Error: Please ensure all weights are properly "
+                            "entered and there are no duplicates]")
         DURATION = TIME_FRAME
         stocks = [stock for stock in STOCK_LIST]
         end_date = dt.datetime.now()
@@ -177,13 +219,14 @@ if __name__ == "__main__":
         start_date = end_date - dt.timedelta(days=DURATION)
         mean_returns, cov_matrix = get_data(stocks, start_date, end_date)
 
-        weights = np.random.random(len(mean_returns))
+
+        if DEBUG_MODE != 2:
+            weights = np.random.random(len(mean_returns))
         weights /= np.sum(weights)
 
         portfolio_sims = monte_carlo_simulation(weights, mean_returns, cov_matrix,
                                                 INITIAL_PORTFOLIO, NUM_SIMULATIONS,
                                                 TIME_FRAME)
-
         plt.subplot(2, 1, 1)
         plot_line_graph(portfolio_sims)
         plt.subplot(2, 1, 2)
