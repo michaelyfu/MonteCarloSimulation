@@ -6,6 +6,7 @@ from pandas_datareader import data as pdr
 import yfinance as yfin
 from scipy.stats import norm
 import streamlit as st
+from st_aggrid import AgGrid, DataReturnMode, GridUpdateMode, GridOptionsBuilder
 import csv
 
 
@@ -123,14 +124,38 @@ def is_outlier(points, thresh=3.5):
 def user_inputs():
     st.slider("Starting Portfolio Value", 0, 1000000, key="initial_val")
     st.slider("Time Frame", 0, 1095, key="num_days")
-    options = st.multiselect(
-        'What stocks make up your portfolio?', tickers_list, key="stock_list")
+    # options = st.multiselect(
+    #     'What stocks make up your portfolio?', tickers_list, key="stock_list")
+    num_row = st.number_input("Number of Rows", min_value=2, max_value=50)
+    st.session_state.num_row = num_row
+    if 'num_row' not in st.session_state:
+        st.session_state.num_row = 2
+    df_portfolio = pd.DataFrame(
+        '',
+        index=range(st.session_state.num_row),
+        columns=["Ticker (ex. AAPL)", "Portfolio Weight (ex. 0.25)"]
+    )
+    with st.form('Portfolio'):
+        response = AgGrid(df_portfolio, editable=True, fit_columns_on_grid_load=True)
+        st.form_submit_button()
+        st.write(response['data'])
+
+def header():
+    st.header("iPortfolio")
+    st.write("Estimate risk and uncertainty of a portfolio of "
+                 "multiple assets through Correlated Monte "
+                 "Carlo Simulation using "
+                 "Cholesky "
+                 "Decomposition.")
+    st.write("Begin by toggling the initial portfolio value worth, time frame "
+             "of historical prices, list of tickers within the portfolio, "
+             "and number of simulations to run.")
 
 def front_end():
     st.pyplot(plt)
-    simulation_button = st.button("Run Simulation")
 
 if __name__ == "__main__":
+    header()
     user_inputs()
     try:
         if DEBUG_MODE:
@@ -170,5 +195,4 @@ if __name__ == "__main__":
         INITIAL_PORTFOLIO = 0
         STOCK_LIST = []
         TIME_FRAME = 0
-
     front_end()
