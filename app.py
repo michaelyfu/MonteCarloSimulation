@@ -6,10 +6,18 @@ from pandas_datareader import data as pdr
 import yfinance as yfin
 from scipy.stats import norm
 import streamlit as st
+import csv
 
 
 yfin.pdr_override()
 
+with open('nasdaq_stocks.csv') as f:
+    reader = csv.reader(f)
+    data = pd.DataFrame(reader)
+    tickers_list = data[0].tolist()
+    tickers_list = tickers_list[1:]
+
+DEBUG_MODE = False
 
 def get_data(stocks, start, end):
     data = pdr.get_data_yahoo(stocks, start, end)
@@ -62,7 +70,7 @@ def plot_line_graph(portfolio_sims):
 
 def plot_histogram(portfolio_sims, NUM_SIMULATIONS):
     expected_vals = portfolio_sims[-1:].ravel()
-    print(expected_vals)
+    # print(expected_vals)
     filtered = expected_vals[~is_outlier(expected_vals)]
     bin_count = int(np.ceil(np.log2(
         NUM_SIMULATIONS) + 1))  # sturge's rule for estimating number of bins in histogram
@@ -113,7 +121,10 @@ def is_outlier(points, thresh=3.5):
     return modified_z_score > thresh
 
 def user_inputs():
-    st.slider("Starting Portfolio Value", 0, 1000000, key="starting_val")
+    st.slider("Starting Portfolio Value", 0, 1000000, key="initial_val")
+    st.slider("Time Frame", 0, 1095, key="num_days")
+    options = st.multiselect(
+        'What stocks make up your portfolio?', tickers_list, key="stock_list")
 
 def front_end():
     st.pyplot(plt)
@@ -121,31 +132,43 @@ def front_end():
 
 if __name__ == "__main__":
     user_inputs()
-    # INITIAL_PORTFOLIO = st.session_state.starting_val
-    INITIAL_PORTFOLIO = 0
-    NUM_SIMULATIONS = 100
-    TIME_FRAME = 300
-    DURATION = TIME_FRAME
-    STOCK_LIST = ['AMZN', 'MSFT', 'AAPL', 'TSLA']
-    stocks = [stock for stock in STOCK_LIST]
-    end_date = dt.datetime.now()
-    # end_date = dt.datetime.strptime("28/12/22 12:30", "%d/%m/%y %H:%M")
-    start_date = end_date - dt.timedelta(days=DURATION)
-    mean_returns, cov_matrix = get_data(stocks, start_date, end_date)
+    try:
+        if DEBUG_MODE:
+            INITIAL_PORTFOLIO = 50000
+            # STOCK_LIST = ['AMZN', 'MSFT', 'AAPL', 'TSLA', 'GOOGL', 'V']
+            STOCK_LIST = ['GOOGL']
+            TIME_FRAME = 300
+            NUM_SIMULATIONS = 5
+        else:
+            INITIAL_PORTFOLIO = st.session_state.initial_val
+            STOCK_LIST = st.session_state.stock_list
+            TIME_FRAME = st.session_state.num_days
 
-    weights = np.random.random(len(mean_returns))
-    weights /= np.sum(weights)
+        NUM_SIMULATIONS = 5
+        DURATION = TIME_FRAME
+        stocks = [stock for stock in STOCK_LIST]
+        end_date = dt.datetime.now()
+        # end_date = dt.datetime.strptime("28/12/22 12:30", "%d/%m/%y %H:%M")
+        start_date = end_date - dt.timedelta(days=DURATION)
+        mean_returns, cov_matrix = get_data(stocks, start_date, end_date)
 
-    portfolio_sims = monte_carlo_simulation(weights, mean_returns, cov_matrix,
-                                            INITIAL_PORTFOLIO, NUM_SIMULATIONS,
-                                            TIME_FRAME)
-    # print(portfolio_sims)
-    # print(portfolio_sims[-1,:])
-    plt.subplot(2, 1, 1)
-    plot_line_graph(portfolio_sims)
-    plt.subplot(2, 1, 2)
-    plot_histogram(portfolio_sims, NUM_SIMULATIONS)
-    plt.tight_layout()
-    plt.show()
+        weights = np.random.random(len(mean_returns))
+        weights /= np.sum(weights)
+
+        portfolio_sims = monte_carlo_simulation(weights, mean_returns, cov_matrix,
+                                                INITIAL_PORTFOLIO, NUM_SIMULATIONS,
+                                                TIME_FRAME)
+
+        plt.subplot(2, 1, 1)
+        plot_line_graph(portfolio_sims)
+        plt.subplot(2, 1, 2)
+        plot_histogram(portfolio_sims, NUM_SIMULATIONS)
+        plt.tight_layout()
+        plt.show()
+        # st.write('You selected:', options)
+    except:
+        INITIAL_PORTFOLIO = 0
+        STOCK_LIST = []
+        TIME_FRAME = 0
 
     front_end()
