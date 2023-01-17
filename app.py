@@ -16,7 +16,10 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 
 yfin.pdr_override()
 
-DEBUG_MODE = 0
+if 'mode' not in st.session_state:
+    st.session_state.mode = 2
+
+DEBUG_MODE = 1
 # DEBUG_MODE == 0 IS RANDOM WEIGHTS, 1 IS NO USER INPUT, 2 IS SET WEIGHTS
 
 def get_data(stocks, start, end):
@@ -78,7 +81,7 @@ def plot_histogram(portfolio_sims, NUM_SIMULATIONS):
         plt.hist(filtered, bins=bin_count)  # need to update to auto bins
     except:
         plt.hist(filtered)
-        st.markdown(":red[Error: Please set Time Frame and Number of "
+        st.markdown(":red[Please set Time Frame and Number of "
                     "Simulations to Run to be greater than 0]")
     mu, std = norm.fit(expected_vals)
 
@@ -128,6 +131,11 @@ def random_weights_user_inputs():
     st.slider("Starting Portfolio Value", 0, 1000000, key="initial_val")
     st.slider("Time Frame (number of days)", 0, 1095, key="num_days")
     st.slider("Number of Simulations to Run", 0, 10000, key="num_simuls")
+    with open('sp500_companies.csv') as f:
+        reader = csv.reader(f)
+        data = pd.DataFrame(reader)
+        tickers_list = data[1].tolist()
+        tickers_list = tickers_list[1:]
     options = st.multiselect(
         'What stocks make up your portfolio?', tickers_list, key="stock_list")
 
@@ -151,15 +159,17 @@ def user_inputs():
     return response['data']
 
 def header():
+    st.set_page_config(page_title="iPortfolio")
     st.header("iPortfolio")
     st.write("Estimate risk and uncertainty of a portfolio of "
                  "multiple assets through Correlated Monte "
                  "Carlo Simulation using "
                  "Cholesky "
                  "Decomposition.")
-    st.write("Begin by toggling the initial portfolio value worth, time frame "
-             "of historical prices, list of tickers within the portfolio, "
-             "and number of simulations to run.")
+    st.write("Begin by inputting your portfolio, or select another simulation type!")
+    # st.write("Begin by toggling the initial portfolio value worth, time frame "
+    #          "of historical prices, list of tickers within the portfolio, "
+    #          "and number of simulations to run.")
 
 def front_end():
     st.pyplot(plt)
@@ -173,8 +183,19 @@ def clean_val(x):
 if __name__ == "__main__":
     header()
     weights = []
+    col1, col2, col3 = st.columns([1, 1, 1])
+    with col1:
+        if st.button(
+            "Simulate random portfolio of stocks"): st.session_state.mode \
+            = 0
+    with col2:
+        if st.button("Simulate with your portfolio values"):
+            st.session_state.mode = 2
+    with col3:
+        if st.button(
+            "Simulate randomly weighted portfolio values"): st.session_state.mode = 1
     try:
-        if DEBUG_MODE == 0:
+        if st.session_state.mode == 0:
             INITIAL_PORTFOLIO = 50000
             # STOCK_LIST = ['AMZN', 'MSFT', 'AAPL', 'TSLA', 'GOOGL', 'V']
             with open('sp500_companies.csv') as f:
@@ -185,18 +206,18 @@ if __name__ == "__main__":
             STOCK_LIST = [tickers_list[i] for i in random.sample(range(0,
                                                                        495),
                                                                  random.randint(2, 50))]
-            print(STOCK_LIST)
+            st.write("Randomized Stock List: ", STOCK_LIST)
             TIME_FRAME = random.randint(100, 500)
-            print(TIME_FRAME)
+            st.write("Time Frame: ", TIME_FRAME)
             NUM_SIMULATIONS = random.randint(1, 10000)
-            print(NUM_SIMULATIONS)
-        elif DEBUG_MODE == 1:
+            st.write("Number of Simulations: ", NUM_SIMULATIONS)
+        elif st.session_state.mode == 1:
             random_weights_user_inputs()
             INITIAL_PORTFOLIO = st.session_state.initial_val
             STOCK_LIST = st.session_state.stock_list
             TIME_FRAME = st.session_state.num_days
             NUM_SIMULATIONS = st.session_state.num_simuls
-        elif DEBUG_MODE == 2:
+        elif st.session_state.mode == 2:
             col1 = "Tickers (ex. AAPL)"
             col2 = "Value (ex. 5000)"
             df_portfolio = user_inputs()
@@ -232,6 +253,7 @@ if __name__ == "__main__":
         plt.subplot(2, 1, 2)
         plot_histogram(portfolio_sims, NUM_SIMULATIONS)
         plt.tight_layout()
+
         plt.show()
         # st.write('You selected:', options)
     except:
